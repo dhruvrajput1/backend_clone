@@ -1,0 +1,15 @@
+{
+  "name": "backend-project-youtube",
+  "version": "1.0.0",
+  "description": "new backend project youtube clone",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "node",
+    "javascript"
+  ],
+  "author": "dhrum",
+  "license": "ISC"
+}
