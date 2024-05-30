@@ -15,7 +15,7 @@ const registerUser = asyncHandler(async (req, res) => {
     }
 
     // check if user already exists (email, username)
-    const existedUser = User.findOne({ $or: [{username}, {email}]});
+    const existedUser = await User.findOne({ $or: [{username}, {email}]});
 
     if(existedUser) {
         throw new ApiError(409, "User already exists");
@@ -23,10 +23,16 @@ const registerUser = asyncHandler(async (req, res) => {
 
     // upload avatar and coverImage to cloudinary (check for avatar)
     const avatarLocalPath = req.files?.avatar[0]?.path;
-    const coverImageLocalPath = req.files?.coverImage[0]?.path;
+    // const coverImageLocalPath = req.files?.coverImage[0]?.path;
+
+    let coverImageLocalPath;
+
+    if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
+        coverImageLocalPath = req.files.coverImage[0].path;
+    }
 
     if(!avatarLocalPath) {
-        throw new ApiError(400, "Avatar file is required");
+        throw new ApiError(403, "Avatar file is required");
     }
 
     const avatar = await uploadOnCloudinary(avatarLocalPath);
@@ -40,7 +46,7 @@ const registerUser = asyncHandler(async (req, res) => {
     // create user object(to be uploaded on mongoDB)
     const user = await User.create({
         fullName: fullName,
-        avatar: avatar.url,
+        avatar: avatar?.url,
         coverImage: coverImage?.url || "",
         username: username.toLowerCase(),
         password: password,
