@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 const userSchema = new mongoose.Schema({
     username: {
@@ -65,7 +66,7 @@ userSchema.methods.isPasswordCorrect = async function(password) { // .methods is
 
 // generating access token
 userSchema.methods.generateAccessToken = function() {
-    jwt.sign(
+    return jwt.sign(
         { // payload(data)
             _id: this._id,
             username: this.username, // this.username is coming from database
@@ -81,7 +82,7 @@ userSchema.methods.generateAccessToken = function() {
 
 // generating refresh token
 userSchema.methods.generateRefreshToken = function() {
-    jwt.sign( // accepts 3 fields, 1. object of payload, 2. token secret, 3. object of expires in time
+    return jwt.sign( // accepts 3 fields, 1. object of payload, 2. token secret, 3. object of expires in time
         { // payload(data)
             _id: this._id,
         },
