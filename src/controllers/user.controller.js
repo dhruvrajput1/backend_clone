@@ -218,7 +218,7 @@ const changeCurrentPassword = asyncHandler(async(req, res) => {
 const getCurrentUser = asyncHandler(async(req, res) => {
     return res
     .status(200)
-    .json(200, req.user, "current user fetched successfully")
+    .json(new ApiResponse(200, req.user, "current user fetched successfully"))
 })
 
 const updateAccountDetails = asyncHandler(async(req, res) => {
@@ -238,7 +238,121 @@ const updateAccountDetails = asyncHandler(async(req, res) => {
 
     return res
     .status(200)
-    .json(200, user, "account details updated successfully");
+    .json(new ApiResponse(200, user, "account details updated successfully"));
 })
 
-export {registerUser, loginUser, logoutUser, refreshAccessToken, getCurrentUser, updateAccountDetails};
+const updateUserAvatar = asyncHandler(async(req, res) => {
+    const avatarLocalPath = req.file?.path;
+
+    if(!avatarLocalPath) {
+        throw new ApiError(400, "Avatar image is required");
+    }
+
+    const avatar = await uploadOnCloudinary(avatarLocalPath);
+
+    if(!avatar.url) {
+        throw new ApiError(400, "Avatar image is not uploaded");
+    }
+
+    const user = await User.findByIdAndUpdate(req.user._id, {$set: {avatar: avatar.url}}, {new: true}).select("-password");
+    
+    return res
+    .status(200)
+    .json(new ApiResponse(200, user, "user avatar updated successfully"));
+})
+
+const updateUserCoverImage = asyncHandler(async(req, res) => {
+    const coverImageLocalPath = req.file?.path;
+
+    if(!coverImageLocalPath) {
+        throw new ApiError(400, "Cover image is required");
+    }
+
+    const coverImage = await uploadOnCloudinary(coverImageLocalPath);
+
+    if(!coverImage.url) {
+        throw new ApiError(400, "Cover image is not uploaded");
+    }
+
+    const user = await User.findByIdAndUpdate(req.user._id, {$set: {coverImage: coverImage.url}}, {new: true}).select("-password");
+    
+    return res
+    .status(200)
+    .json(new ApiResponse(200, user, "user cover image updated successfully"));
+})
+
+const getUserCurrentProfile = asyncHandler(async(req, res) => {
+    const {username} = req.params; // coming from the url
+
+    if(!username?.trim()) {
+        throw new ApiError(400, "Username is required");
+    }
+
+    const channel = await User.aggregate([ // aggregation pipeline
+        { // 1st pipeline
+            $match: {
+                username: username?.toLowerCase()
+            } 
+        },
+        { // 2nd pipeline
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "channel",
+                as: "subscribers"
+            }
+        },
+        { // 3rd pipeline
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "subscriber",
+                as: "subscriberdTo"
+            }
+        },
+        { // 4th pipeline
+            $addFields: { // added these extra fields to user database
+                subscribersCount: {
+                    $size: "$subscribers"
+                },
+                channelsSubscriberdToCount: {
+                    $size: "$subscriberdTo"
+                },
+                isSubscribed: {
+                    $cond: {
+                        if: {
+                            $in: [req.user?._id, "$subscribers.subscriber"] // checking for subscriber in subscribers
+                        },
+                        then: true,
+                        else: false
+                    }
+                }
+            }
+        },
+        { // 5th pipeline
+            $project: { // fields which we want to show
+                username: 1,
+                fullName: 1,
+                avatar: 1,
+                coverImage: 1,
+                subscribersCount: 1,
+                channelsSubscriberdToCount: 1,
+                isSubscribed: 1
+            }
+        }
+    ])
+
+    if(!channel?.length) {
+        throw new ApiError(404, "channel does not exists");
+    }
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200, channel[0], "User channel fetched successfully")
+    )
+})
+
+export {registerUser, loginUser, logoutUser, refreshAccessToken, changeCurrentPassword, getCurrentUser, updateAccountDetails
+    , updateUserAvatar, updateUserCoverImage
+};
