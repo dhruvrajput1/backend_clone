@@ -41,6 +41,6 @@ const videoSchema = new mongoose.Schema({
 }, {timestamps: true})
 
 // plugin is a middleware which is used to apply some properties to all the schemas efficiently
-videoSchema.plugin(mongooseAggregatePaginate);
+videoSchema.plugin(mongooseAggregatePaginate); // used for pipelining
 
 export const Video = mongoose.model("Video", videoSchema);

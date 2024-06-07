@@ -49,14 +49,11 @@ const userSchema = new mongoose.Schema({
 
 
 // hasing the password using "pre" middleware (pre means something before saving)
-userSchema.pre('save', async function(next) {
-    if(this.modifiedPaths('password')) { // update only if password is updated
-        this.password = await bcrypt.hash(this.password, 10); // 10 rounds of salt
-        next(); // pass the flag to next middleware
-    }
-    else {
-        return next();
-    }
+userSchema.pre("save", async function (next) {
+    if(!this.isModified("password")) return next();
+
+    this.password = await bcrypt.hash(this.password, 10)
+    next()
 })
 
 // now compare the password entered by user and the bcrypted password

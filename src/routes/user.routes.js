@@ -24,7 +24,7 @@ router.route("/login").post(loginUser);
 router.route("/logout").post(verifyJWT, logoutUser); // verifyJWT is a middleware (we have to verify JWT token before logging out)
 router.route("/refresh-token").post(refreshAccessToken);
 router.route("/change-password").post(verifyJWT, changeCurrentPassword);
-router.route("/current-user").post(verifyJWT, getCurrentUser);
+router.route("/current-user").get(verifyJWT, getCurrentUser);
 router.route("/update-account").patch(verifyJWT, updateAccountDetails); // patch applies partial modification, post applies modification in all fields
 router.route("/update-avatar").patch(verifyJWT, upload.single("avatar"), updateUserAvatar); // 2 middlewares
 router.route("/update-cover-image").patch(verifyJWT, upload.single("coverImage"), updateUserCoverImage);
