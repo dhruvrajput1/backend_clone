@@ -28,7 +28,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
                 localField: "owner",
                 foreignField: "_id",
                 as: "owner",
-                pipeline: [
+                pipeline: [ // pipeline is used to project only some field from users
                     {
                         $project: {
                             fullname: 1,
@@ -42,7 +42,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
         {
             $addFields: {
                 owner: {
-                    $first: "$owner" //return directly object not in array
+                    $first: "$owner" //return directly object not in array, as it takes only first element of the array
                 }
             }
         },
@@ -96,7 +96,59 @@ const addComment = asyncHandler(async (req, res) => {
     }
 })
 
+const updateComment = asyncHandler(async (req, res) => {
+    try {
+        const { commentId } = req.params;
+        const { newComment } = req.body;
+
+        if(!newComment) {
+            throw new ApiError(400, "Comment cannot be empty");
+        }
+
+        const updatedComment = await Comment.findByIdAndUpdate(commentId, {content: newComment});
+
+        if(!updatedComment) {
+            throw new ApiError(404, "Comment not found");
+        }
+
+        return res
+        .status(200)
+        .json(
+            new ApiResponse(200, updatedComment, "Comment updated successfully")
+        )
+
+    } catch(error) {
+        throw new ApiError(500, error.message);
+    }
+})
+
+const deleteComment = asyncHandler(async (req, res) => {
+    try {
+        
+        const { commentId } = req.params;
+        const userId = await req.user._id;
+
+        const comment = await Comment.findByIdAndDelete(commentId);
+
+        if(!comment) {
+            throw new ApiError(404, "Comment not found");
+        }
+
+
+        return res
+        .status(200)
+        .json(
+            new ApiResponse(200, {}, "Comment deleted successfully")
+        )
+
+    } catch (error) {
+        throw new ApiError(500, error.message);
+    }
+})
+
 export {
     getVideoComments,
-    addComment
+    addComment,
+    updateComment,
+    deleteComment
 }
