@@ -23,9 +23,12 @@ const videoSchema = new mongoose.Schema({
         type: Number, //  we will fetch from cloudinary
         required: true,
     },
+    publicId: { // from cloudinary
+        type: String, 
+        required: true,
+    },
     views: {
         type: Number,
-        required: true,
         default: 0
     },
     isPublished: {
