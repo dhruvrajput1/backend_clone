@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2";
+import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2"; // user ko ek sath saare video nahi show karne
 
 const videoSchema = new mongoose.Schema({
     
