@@ -18,6 +18,7 @@ app.use(cookieParser()); // it is used to read and update the cookies stored in 
 // import routes
 import userRouter from "./routes/user.routes.js";
 import commentRouter from "./routes/comment.routes.js";
+import videoRouter from "./routes/video.routes.js";
 
 // routes declaration
 // app.use("/users", userRouter);
@@ -25,6 +26,8 @@ import commentRouter from "./routes/comment.routes.js";
 // more better to use with api version
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/comments", commentRouter);
+app.use("/api/v1/videos", videoRouter);
+
 
 // https://localhost:8000/users/register
 // https://localhost:8000/users/login

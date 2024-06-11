@@ -1,65 +1,68 @@
 import mongoose, {isValidObjectId} from "mongoose";
-import { Video } from "../models/video.model";
-import { ApiError } from "../utils/ApiError";
-import { asyncHandler } from "../utils/asyncHandler";
-import { ApiResponse } from "../utils/ApiResponse";
-import { uploadOnCloudinary } from "../utils/cloudinary";
+import { Video } from "../models/video.model.js";
+import { ApiError } from "../utils/ApiError.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
+import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { User } from "../models/user.model.js";
 import {v2 as cloudinary} from 'cloudinary';
 
 const getAllVideos = asyncHandler(async (req, res) => {
+
+    const { page = 1, limit = 10, sortBy = "title", sortType = "asc", userId } = req.query;
+    
+    const pageNumber = parseInt(page);
+    const pageLimit = parseInt(limit);
+
+    const skip = (pageNumber - 1) * pageLimit;
+    
+    const sortingDirection = sortType === "desc"? -1 : 1; // +1 for ascending
+
     try {
-
-        const { page = 1, limit = 10, sortBy = "title", sortType = "asc", userId } = req.params;
-        
-        const pageLimit = parseInt(limit);
-
-        const skip = offset;
-        
-        const sortingDirection = sortType === "desc"? -1 : 1; // +1 for ascending
-
-        const videos = await Video.aggregate([
-            {
-                $match: {
-                    owner: new mongoose.Types.ObjectId(userId)
-                }
-            },
-            {
-                $lookup: {
-                    from: "users",
-                    localField: "owner",
-                    foreignField: "_id",
-                    as: "owner",
-                    pipeline: [
-                        {
-                            $project: {
-                                fullname: 1,
-                                username: 1,
-                                avatar: 1
-                            }
-                        }
-                    ]
-                }
-            },
-            {
-                $addFields: {
-                    owner: {
-                        $first: "$owner"
+        const videos = await Video.aggregate(
+            [
+                {
+                    $match: {
+                        owner: new mongoose.Types.ObjectId(userId)
                     }
+                },
+                {
+                    $lookup: {
+                        from: "users",
+                        localField: "owner",
+                        foreignField: "_id",
+                        as: "owner",
+                        pipeline: [
+                            {
+                                $project: {
+                                    fullName: 1,
+                                    username: 1,
+                                    avatar: 1
+                                }
+                            }
+                        ]
+                    }
+                }, 
+                {
+                    $addFields: {
+                        owner: {
+                            $arrayElemAt: [ "$owner", 0 ]
+                        }
+                    }
+                },
+                {
+                    $skip: skip
+                },
+                {
+                    $limit: pageLimit
+                },
+                {
+                    $sort: { [sortBy]: sortingDirection }
                 }
-            },
-            {
-                $skip: skip
-            },
-            {
-                $limit: pageLimit
-            },
-            {
-                $sort: {
-                    [sortBy]: sortingDirection
-                }
-            }
-        ]);
+
+            ])
+
+        console.log("videos : ",  videos);
 
         if(!videos) {
             throw new ApiError(404, "No videos found");
@@ -79,7 +82,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
         
 
     } catch (error) {
-        throw new ApiError(400, "Error while showing videos on home page");
+        throw new ApiError(400, `Error while showing videos on home page ${error.message}`, error);
     }
 })
 
@@ -88,26 +91,37 @@ const publishAVideo = asyncHandler(async (req, res) => {
 
     try {
 
+        const userId = await req.user._id;
+
         const videoLocalPath = req.files?.videoFile[0].path;
         const thumbnailLocalPath = req.files?.thumbnail[0].path;
+
+        console.log("videoLocalPath:    ", videoLocalPath);
+        console.log("thumbnailLocalPath: ", thumbnailLocalPath);
 
         const video = await uploadOnCloudinary(videoLocalPath);
         const thumbnail = await uploadOnCloudinary(thumbnailLocalPath);
 
-        console.log(video);
+        console.log("video:    ", video);
+        console.log("thumbnail: ", thumbnail);
 
-        if(!video || !thumbnail) {
-            throw new ApiError(400, "Error while uploading video or thumbnail to cloudinary");
+
+        if (!video) {
+            throw new ApiError(400, "Error while uploading Video on cloudinary")
+        }
+    
+        if (!thumbnail) {
+            throw new ApiError(400, "Error while uploading Thumbnail on cloudinary")
         }
 
         const newVideo = await Video.create({
-            title,
-            description,
+            title: title,
+            description: description,
             thumbnail: thumbnail.url,
             videoFile: video.url,
             publicId: video.public_id,
             duration: video.duration,
-            owner: req.user._id,
+            owner: userId,
             isPublished: true
         })
 
@@ -122,7 +136,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
         )
         
     } catch (error) {
-        throw new ApiError(400, "Error while publishing a video");
+        throw new ApiError(400, `Error while publishing a video ${error.message}`);
     }
 })
 
