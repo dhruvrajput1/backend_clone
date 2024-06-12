@@ -62,7 +62,6 @@ const getAllVideos = asyncHandler(async (req, res) => {
 
             ])
 
-        console.log("videos : ",  videos);
 
         if(!videos) {
             throw new ApiError(404, "No videos found");
@@ -96,14 +95,11 @@ const publishAVideo = asyncHandler(async (req, res) => {
         const videoLocalPath = req.files?.videoFile[0].path;
         const thumbnailLocalPath = req.files?.thumbnail[0].path;
 
-        console.log("videoLocalPath:    ", videoLocalPath);
-        console.log("thumbnailLocalPath: ", thumbnailLocalPath);
 
         const video = await uploadOnCloudinary(videoLocalPath);
         const thumbnail = await uploadOnCloudinary(thumbnailLocalPath);
 
-        console.log("video:    ", video);
-        console.log("thumbnail: ", thumbnail);
+        console.log("thumbnail: : : : : ", thumbnail);
 
 
         if (!video) {
@@ -157,7 +153,7 @@ const getVideoById = asyncHandler(async (req, res) => {
 
 
         // incrementing the view of the video
-        await findByIdAndUpdate(videoId, { $inc: { views: 1 } }, { new: true });
+        await Video.findByIdAndUpdate(videoId, { $inc: { views: 1 } }, { new: true });
 
         // adding the video to the watch history of the user
         await User.findByIdAndUpdate(req.user._id, { $push: { watchHistory: videoId } }, { new: true });
@@ -188,7 +184,8 @@ const updateVideo = asyncHandler(async (req, res) => { // update thumbnail, desc
             throw new ApiError(404, "Video not found while updating video");
         }
 
-        const publicId = video.publicId;
+        // delete the thumbnail from cloudinary
+        const publicId = await video.thumbnail.public_id;
 
         if(publicId) { // deleting old thumbnail
             try {
@@ -252,12 +249,15 @@ const deleteVideo = asyncHandler(async (req, res) => {
         const publicId = video.publicId;
 
         if(!publicId) {
-            throw new ApiError(400, "Error while deleting video");
+            throw new ApiError(400, "Error in publicId while deleting video");
         }
 
         if(publicId) {
             try {
+                // deleting from cloudinary
                 await cloudinary.uploader.destroy(publicId, {resource_type: "video"});
+                // delete from database
+                await Video.findByIdAndDelete(videoId);
             } catch (error) {
                 throw new ApiError(400, "Error while deleting video");
             }

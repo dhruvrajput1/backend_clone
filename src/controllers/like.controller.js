@@ -1,8 +1,8 @@
 import mongoose, {isValidObjectId} from "mongoose";
-import { asyncHandler } from "../utils/asyncHandler";
+import { asyncHandler } from "../utils/asyncHandler.js";
 import { Like } from "../models/like.model.js"
-import { ApiError } from "../utils/ApiError";
-import { ApiResponse } from "../utils/ApiResponse";
+import { ApiError } from "../utils/ApiError.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
 
 const toggleVideoLike = asyncHandler(async (req, res) => {
 
@@ -23,7 +23,7 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
         let videoLikeStatus;
 
         if(!isLiked) {
-            const like = await Like.create({
+            await Like.create({
                 video: videoId,
                 likedBy: userId
             })
@@ -142,7 +142,8 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
 
 // get all the videos liked by current user
 const getLikedVideos = asyncHandler(async (req, res) => {
-    const userId = await req.user._id;
+    const userId = req.user?._id;
+
 
     if(!userId) {
         throw new ApiError(401, "requested user not found while fetching liked videos");
@@ -159,7 +160,7 @@ const getLikedVideos = asyncHandler(async (req, res) => {
             {
                 $match: {
                     video: {
-                        $ne: null // video not equal to null
+                        $exists: true
                     }
                 }
             },
@@ -196,19 +197,27 @@ const getLikedVideos = asyncHandler(async (req, res) => {
                                         }
                                     }
                                 ]
+                                
+                            }
+                        },
+                        {
+                            $addFields: {
+                                owner: {
+                                    $first: "$owner"
+                                }
                             }
                         }
                     ]
                 }
             },
-            {
-                $addFields: {
-                    owner: {
-                        $first: "$owner"
-                    }
-                }
-            }
+            
         ]);
+
+        console.log("liked videos ", likedVideosByUser);
+
+        if(!likedVideosByUser) {
+            throw new ApiError(404, "No liked videos found");
+        }
 
         return res
         .status(200)
