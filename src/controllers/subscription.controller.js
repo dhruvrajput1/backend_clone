@@ -62,34 +62,66 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
 
     try {
 
-        const userSubscribers = await Subscription.aggregate(
-            [
-                {
-                    $match: {
-                        channel: new mongoose.Types.ObjectId(channelId),
-                    }
+        const subscribers = await Subscription.aggregate([
+            {
+                $match: {
+                    channel: channelId,
                 },
-                //One More way to count subscribers without lookup            
-                {
-                    $group: {
-                        _id: null,
-                        totalSubscribers: {
-                            $sum: 1
-                        }
-                    }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "subscriber",
+                    foreignField: "_id",
+                    as: "subscriber",
+                    pipeline: [
+                        {
+                            $lookup: {
+                                from: "subscriptions",
+                                localField: "_id",
+                                foreignField: "channel",
+                                as: "subscribedToSubscriber",
+                            },
+                        },
+                        {
+                            $addFields: {
+                                subscribedToSubscriber: {
+                                    $cond: {
+                                        if: {
+                                            $in: [
+                                                channelId,
+                                                "$subscribedToSubscriber.subscriber",
+                                            ],
+                                        },
+                                        then: true,
+                                        else: false,
+                                    },
+                                },
+                                subscribersCount: {
+                                    $size: "$subscribedToSubscriber",
+                                },
+                            },
+                        },
+                    ],
                 },
-                {
-                    $project: {
-                        _id: 0,
-                        totalSubscribers: 1
-                    }
-                }
-            ]
-        );
-
-        if(!userSubscribers.length) {
-            throw new ApiError(404, "Channel has no subscribers");
-        }
+            },
+            {
+                $unwind: "$subscriber",
+            },
+            {
+                $project: {
+                    _id: 0,
+                    subscriber: {
+                        _id: 1,
+                        username: 1,
+                        fullName: 1,
+                        "avatar.url": 1,
+                        subscribedToSubscriber: 1,
+                        subscribersCount: 1,
+                    },
+                },
+            },
+        ]);
 
         return res
         .status(200)
