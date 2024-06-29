@@ -72,7 +72,7 @@ const addComment = asyncHandler(async (req, res) => {
         const { text } = req.body;
         const userId = await req.user._id;
 
-        if(!text) {
+        if(text === "") {
             throw new ApiError(400, "Comment cannot be empty");
         }
     
@@ -82,7 +82,7 @@ const addComment = asyncHandler(async (req, res) => {
             owner: userId
         });
     
-        if(comment === "") {
+        if(!comment) {
             throw new ApiError(400, "Comment not added");
         }
     
