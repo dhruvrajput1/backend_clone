@@ -3,6 +3,7 @@ import { Comment } from "../models/comment.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { User } from "../models/user.model.js";
 
 
 const getVideoComments = asyncHandler(async (req, res) => {
@@ -72,6 +73,8 @@ const addComment = asyncHandler(async (req, res) => {
         const { text } = req.body;
         const userId = await req.user._id;
 
+        const user = await User.findById(userId);
+
         if(text === "") {
             throw new ApiError(400, "Comment cannot be empty");
         }
@@ -79,7 +82,7 @@ const addComment = asyncHandler(async (req, res) => {
         const comment = await Comment.create({
             content: text,
             video: videoId,
-            owner: userId
+            owner: user
         });
     
         if(!comment) {
