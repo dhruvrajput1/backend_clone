@@ -154,63 +154,60 @@ const getLikedVideos = asyncHandler(async (req, res) => {
         const likedVideosByUser = await Like.aggregate([
             {
                 $match: {
-                    likedBy: new mongoose.Types.ObjectId(userId)
-                }
-            },
-            {
-                $match: {
-                    video: {
-                        $exists: true
-                    }
-                }
+                    likedBy: new mongoose.Types.ObjectId(req.user?._id),
+                },
             },
             {
                 $lookup: {
                     from: "videos",
                     localField: "video",
                     foreignField: "_id",
-                    as: "video",
+                    as: "likedVideo",
                     pipeline: [
                         {
-                            $project: {
-                                video: 1,
-                                title: 1,
-                                description: 1,
-                                thumbnail: 1,
-                                createdAt: 1,
-                                owner: 1,
-                                views: 1
-                            }
-                        },
-                        {
-                            $lookup: { // getting info about the user from the video
-                                from: "users", // look from the users database
-                                localField: "owner", // in the video DB
+                            $lookup: {
+                                from: "users",
+                                localField: "owner",
                                 foreignField: "_id",
-                                as: "owner",
-                                pipeline: [
-                                    {
-                                        $project: {
-                                            username: 1,
-                                            avatar: 1,
-                                            fullName: 1
-                                        }
-                                    }
-                                ]
-                                
-                            }
+                                as: "ownerDetails",
+                            },
                         },
                         {
-                            $addFields: {
-                                owner: {
-                                    $first: "$owner"
-                                }
-                            }
-                        }
-                    ]
-                }
+                            $unwind: "$ownerDetails",
+                        },
+                    ],
+                },
             },
-            
+            {
+                $unwind: "$likedVideo",
+            },
+            {
+                $sort: {
+                    createdAt: -1,
+                },
+            },
+            {
+                $project: {
+                    _id: 0,
+                    likedVideo: {
+                        _id: 1,
+                        "videoFile": 1,
+                        "thumbnail": 1,
+                        owner: 1,
+                        title: 1,
+                        description: 1,
+                        views: 1,
+                        duration: 1,
+                        createdAt: 1,
+                        isPublished: 1,
+                        ownerDetails: {
+                            username: 1,
+                            fullName: 1,
+                            "avatar": 1,
+                        },
+                    },
+                },
+            },
         ]);
 
         console.log("liked videos ", likedVideosByUser);
