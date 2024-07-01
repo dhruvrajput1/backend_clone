@@ -45,34 +45,72 @@ const getUserTweets = asyncHandler(async (req, res) => {
         const userTweets = await Tweet.aggregate([
             {
                 $match: {
-                    owner: new mongoose.Types.ObjectId(userId)
-                }
+                    owner: new mongoose.Types.ObjectId(userId),
+                },
             },
             {
                 $lookup: {
                     from: "users",
                     localField: "owner",
                     foreignField: "_id",
-                    as: "owner",
+                    as: "ownerDetails",
                     pipeline: [
                         {
                             $project: {
-                                fullName: 1,
                                 username: 1,
-                                avatar: 1
-                            }
-                        }
-                    ]
-                }
+                                avatar: 1,
+                            },
+                        },
+                    ],
+                },
+            },
+            {
+                $lookup: {
+                    from: "likes",
+                    localField: "_id",
+                    foreignField: "tweet",
+                    as: "likeDetails",
+                    pipeline: [
+                        {
+                            $project: {
+                                likedBy: 1,
+                            },
+                        },
+                    ],
+                },
             },
             {
                 $addFields: {
-                    owner: {
-                        $arrayElemAt: [ "$owner", 0 ]
+                    likesCount: {
+                        $size: "$likeDetails",
+                    },
+                    ownerDetails: {
+                        $first: "$ownerDetails",
+                    },
+                    isLiked: {
+                        $cond: {
+                            if: {$in: [req.user?._id, "$likeDetails.likedBy"]},
+                            then: true,
+                            else: false
+                        }
                     }
+                },
+            },
+            {
+                $sort: {
+                    createdAt: -1
                 }
-            }
-        ])
+            },
+            {
+                $project: {
+                    content: 1,
+                    ownerDetails: 1,
+                    likesCount: 1,
+                    createdAt: 1,
+                    isLiked: 1
+                },
+            },
+        ]);
 
         if(!userTweets.length) {
             throw new ApiError(404, "User has no tweets");
