@@ -139,9 +139,9 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
             ]
         );
 
-        if(!userPlaylist.length) {
-            throw new ApiError(404, "User has no playlists");
-        }
+        // if(!userPlaylist.length) {
+        //     throw new ApiError(404, "User has no playlists");
+        // }
 
         return res
         .status(200)
@@ -177,7 +177,7 @@ const getPlaylistById = asyncHandler(async (req, res) => {
         )
 
     } catch (error) {
-        throw new ApiError(500, error.message);
+        throw new ApiError(500, `error while getting user playlist in playlist controller ${error.message}`);
     }
 })
 
