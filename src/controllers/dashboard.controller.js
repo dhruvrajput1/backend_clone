@@ -97,9 +97,9 @@ const getChannelVideos = asyncHandler(async (req, res) => {
             owner: userId
         });
 
-        if(!userVideos.length) {
-            throw new ApiError(404, "Channel has no videos");
-        }
+        // if(!userVideos.length) {
+        //     throw new ApiError(404, "Channel has no videos");
+        // }
 
         return res
         .status(200)

@@ -101,6 +101,14 @@ const publishAVideo = asyncHandler(async (req, res) => {
         const videoLocalPath = req.files?.videoFile[0].path;
         const thumbnailLocalPath = req.files?.thumbnail[0].path;
 
+        if(!videoLocalPath) {
+            throw new ApiError(400, "Video file path is required")
+        }
+
+        if(!thumbnailLocalPath) {
+            throw new ApiError(400, "Thumbnail file path is required")
+        }
+
 
         const video = await uploadOnCloudinary(videoLocalPath);
         const thumbnail = await uploadOnCloudinary(thumbnailLocalPath);
@@ -124,7 +132,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
             publicId: video.public_id,
             duration: video.duration,
             owner: userId,
-            isPublished: true
+            isPublished: false
         })
 
         if(!newVideo) {
